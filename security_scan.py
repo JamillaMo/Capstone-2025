@@ -1,59 +1,89 @@
 import whois
+import platform
+import pandas as pd
+import requests
 import socket
 import threading
 import nmap
 from ipwhois import IPWhois
 
-urls = input("Enter domain(s) separated by commas without https or www ")
+urls = input("Enter your domain or IP address to begin")
 
 domain_list = [value.strip() for value in urls.split(',')]
 
-def scan_port(ip, port):
+
+def get_local_os_info():
+	#os of scanning machine
+	os_name = platform.system()
+	os_version= platform.version()
+	os_release = platform.release()
+	os = f"Local OS: {os_name}, Version: {os_version}, Release: {os_release}"
+	return os
+
+
+
+def scan_target(ip):
+	nm = nmap.PortScanner()  # Create Nmap scanner object
+	nm.scan(hosts=ip, arguments="-sV")  # Run service detection scan
+	cve_items = []
+	print(f"Scanning {ip}...\n")
 	
-	# Create a socket object
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	
-	sock.settimeout(10)  # Set timeout for the connection
-	result = sock.connect_ex((ip, int(port)))  # Try to connect to the port
-	if result == 0:
-			
-		print(f"Port {port} is open")
-	else:
-		print(f"Port {port} seems closed or filtered")
-
-	sock.close()  # Close the socket
-
-
-def get_services(ip, port):
-	nm = nmap.PortScanner()
-
-	# Perform a scan on the target IP for the specified port
-	nm.scan(ip, str(port), arguments='-sV')  # -sV enables service version detection
-    
-	desired_ports = [22, 80, 443]
-	service_versions =[]
-    
-	# Check the protocols for the scanned host
+	# Iterate through scanned results
 	for proto in nm[ip].all_protocols():
-		lport = nm[ip][proto].keys()
-		for port in lport:
-			if port in desired_ports:
-				service = nm[ip][proto][port].get('name','Unknown')
-				version = nm[ip][proto][port].get('version','Unknown')
-				service_versions.append(f"Port {port}: {service} ({version})")
-	return service_versions
-				
-	
+		ports = nm[ip][proto].keys()
+		for port in sorted(ports):
+			service = nm[ip][proto][port].get('name', 'Unknown')
+			product = nm[ip][proto][port].get('product', '')
+			version = nm[ip][proto][port].get('version', '')
+			item = product + " " + version  # Ensure proper spacing
+			cve_items.append(item)  # Append to the list
+		
 
+			print(f"Port: {port}, Service: {service}, Product: {product} {version}")
+	return cve_items
 	
 
 def get_vulnerabilities(service_name):
-	# Example API call to a vulnerability database
-	url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=" + service_name + "&keywordExactMatch?"
-	response = requests.get(url)
-	if response.status_code == 200:
-		return response.json()  # Return the list of vulnerabilities
-	return []
+	
+	url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={str(service_name)}" 
+
+
+	headers = {"User-Agent": "Mozilla/5.0"}  # Prevents blocking
+
+	response = requests.get(url, headers=headers)
+
+	if response.status_code != 200:
+		print(f"Error: {response.status_code}")
+		return None
+
+	try:
+		data = response.json()
+	except requests.exceptions.JSONDecodeError:
+		print("Error: Received non-JSON response.")
+		return None
+
+	cve_list = data.get("vulnerabilities", [])
+	
+	if not cve_list:
+		print(f"No vulnerabilities found for {service_name}")
+		return []
+
+	formatted_cves = []
+	for entry in cve_list:
+		cve = entry.get("cve", {})
+		cve_id = cve.get("id", "N/A")
+		description = next((desc["value"] for desc in cve.get("descriptions", []) if desc["lang"] == "en"), "No description available")
+		severity = "N/A"
+		if "metrics" in cve:
+			cvss_v3 = cve["metrics"].get("cvssMetricV30", [])
+			if cvss_v3:
+				severity = cvss_v3[0]["cvssData"]["baseSeverity"]
+
+		formatted_cves.append(f"**{cve_id}**\nSeverity: {severity}\nDescription: {description}\n")
+
+	return "\n".join(formatted_cves)
+
+
 
 for domain in domain_list:
 
@@ -85,32 +115,31 @@ for domain in domain_list:
 
 
 	#Port Scanning
+
+	
+
 	print("Retrieving port data...")
 
-	scan_port(ip,"22")
-	scan_port(ip,"80")
-	scan_port(ip,"443")
 
 	print("Retrieving port services data...")
-	#execution stalls here then times out even after 30secs
+	
 
-	service_name1 = get_services(ip,22)
-	service_name2 = get_services(ip,80)
-	service_name3 = get_services(ip,443)
+	full_scan = scan_target(ip)
+	
 
-	print(service_name1)
-	print(service_name2)
-	print(service_name3)
+	os = get_local_os_info()
+	print(os)
 
 
 	#Vulnerability Assessment
 
+	full_scan.append(os)
+	for service in full_scan:
+		vulns = get_vulnerabilities(str(service))
+
+		print(f"Vulnerabilities for get vulnerabilities {service}: {vulns}")
+			
 	
-	#vulnerabilities = get_vulnerabilities(service_name)
-			#if vulnerabilities:
-				#print(f"Vulnerabilities for {service_name}: {vulnerabilities}")
-			#else:
-				#print(f"No known vulnerabilities for {service_name}")
 	
 
 
