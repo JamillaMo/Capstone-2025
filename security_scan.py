@@ -44,10 +44,7 @@ def scan_target(ip):
 	
 
 def get_vulnerabilities(service_name):
-	
-	url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={str(service_name)}" 
-
-
+	url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={str(service_name)}"
 	headers = {"User-Agent": "Mozilla/5.0"}  # Prevents blocking
 
 	response = requests.get(url, headers=headers)
@@ -63,26 +60,42 @@ def get_vulnerabilities(service_name):
 		return None
 
 	cve_list = data.get("vulnerabilities", [])
-	
+
 	if not cve_list:
 		print(f"No vulnerabilities found for {service_name}")
 		return []
 
 	formatted_cves = []
+	high = 0
+	critical = 0
 	for entry in cve_list:
 		cve = entry.get("cve", {})
 		cve_id = cve.get("id", "N/A")
 		description = next((desc["value"] for desc in cve.get("descriptions", []) if desc["lang"] == "en"), "No description available")
 		severity = "N/A"
+
+		# Extract CVSS v3 severity if available
 		if "metrics" in cve:
 			cvss_v3 = cve["metrics"].get("cvssMetricV30", [])
-			if cvss_v3:
-				severity = cvss_v3[0]["cvssData"]["baseSeverity"]
+		if cvss_v3:
+			severity = cvss_v3[0]["cvssData"].get("baseSeverity", "N/A")
+		elif "cvssMetricV2" in cve["metrics"] and cve["metrics"]["cvssMetricV2"]:
+					severity = cve["metrics"]["cvssMetricV2"][0]["baseSeverity"]
+	
 
-		formatted_cves.append(f"**{cve_id}**\nSeverity: {severity}\nDescription: {description}\n")
+		# Only store HIGH or CRITICAL severity vulnerabilities
+		if severity in ["HIGH", "CRITICAL"]:
+			formatted_cves.append(f"**{cve_id}**\nSeverity: {severity}\nDescription: {description}\n")
+			if severity == "HIGH":
+				high+= 1
+			elif severity == "CRITICAL":
+				critical+=1
+		#formatted_cves.append(f"**{cve_id}**\nSeverity: {severity}\nDescription: {description}\n")
+		
 
-	return "\n".join(formatted_cves)
-
+	print(f"High: {high}, Critical: {critical}")
+	print(f"Total: {high + critical}")
+	return "\n".join(formatted_cves) if formatted_cves else f"No HIGH or CRITICAL vulnerabilities found for {service_name}."
 
 
 for domain in domain_list:
