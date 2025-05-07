@@ -1,11 +1,21 @@
+import os
 import whois
 import platform
 import pandas as pd
 import requests
 import socket
-import threading
+from threading import Thread
 import nmap
 from ipwhois import IPWhois
+import subprocess
+import pyshark 
+import signal
+import sys
+import time 
+
+
+
+
 
 urls = input("Enter your domain or IP address to begin")
 
@@ -35,8 +45,8 @@ def scan_target(ip):
 			service = nm[ip][proto][port].get('name', 'Unknown')
 			product = nm[ip][proto][port].get('product', '')
 			version = nm[ip][proto][port].get('version', '')
-			item = product + " " + version  # Ensure proper spacing
-			cve_items.append(item)  # Append to the list
+			item = product + " " + version  
+			cve_items.append(item) 
 		
 
 			print(f"Port: {port}, Service: {service}, Product: {product} {version}")
@@ -116,41 +126,101 @@ for domain in domain_list:
 
 
 
-	#Host Discovery
+#Host Discovery
 
-	try:
+try:
 		
-		ip = socket.gethostbyname(domain)
-		print(f"The domain '{domain}' resolves to IP address: {ip}")
-		print (f"This host is live")
-	except socket.gaierror:
-		print(f"The domain " + domain + " does not resolve.")
+	ip = socket.gethostbyname(domain)
+	print(f"The domain '{domain}' resolves to IP address: {ip}")
+	print (f"This host is live")
+except socket.gaierror:
+	print(f"The domain " + domain + " does not resolve.")
 
 
-	#Port Scanning
+#Port Scanning
 
 	
 
-	print("Retrieving port data...")
+print("Retrieving port data...")
 
 
-	print("Retrieving port services data...")
+print("Retrieving port services data...")
 	
 
-	full_scan = scan_target(ip)
+full_scan = scan_target(ip)
 	
 
-	os = get_local_os_info()
-	print(os)
+os_name = get_local_os_info()
+print(os_name)
 
 
-	#Vulnerability Assessment
+#Vulnerability Assessment
 
-	full_scan.append(os)
-	for service in full_scan:
-		vulns = get_vulnerabilities(str(service))
+full_scan.append(os_name)
+for service in full_scan:
+	vulns = get_vulnerabilities(str(service))
 
-		print(f"Vulnerabilities for get vulnerabilities {service}: {vulns}")
+	print(f"Vulnerabilities for get vulnerabilities {service}: {vulns}")
+
+
+#Snort persistent scanning and alerting
+
+SNORT_PATH = r"C:\Snort\bin\snort.exe"
+CONFIG_PATH = r"C:\Snort\etc\snort.conf"
+INTERFACE = "5"  
+LOG_DIR = r"C:\Snort\log"
+ALERT_FILE = os.path.join(LOG_DIR, "alert.fast")
+
+def start_snort():
+    cmd = [
+        SNORT_PATH,
+        "-i", INTERFACE,
+        "-c", CONFIG_PATH,
+        "-A", "fast",          # Output format
+        "-l", LOG_DIR,         # Log directory
+        "-q"                   # Quiet mode
+    ]
+    return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+		
+def watch_alerts():
+    print("Viewing alert file...\n")
+    seen = 0
+    while True:
+        if os.path.exists(ALERT_FILE):
+            with open(ALERT_FILE, 'r') as f:
+                lines = f.readlines()
+                new_alerts = lines[seen:]
+                if new_alerts:
+                    for alert in new_alerts:
+                        print(f"[ALERT] {alert.strip()}")
+                    seen = len(lines)
+        time.sleep(1)
+
+snort_proc = start_snort()
+print("Snort started. Monitoring traffic...")
+
+try:
+    alert_thread = Thread(target=watch_alerts, daemon=True)
+    alert_thread.start()
+
+    while True:
+    	time.sleep(1)
+
+except Exception as e:
+    print(f"Error: {e}")
+
+finally:
+    print("\nStopping Snort...")
+    snort_proc.terminate()
+    snort_proc.wait()
+    print("Snort stopped.")
+	
+#Wireshark periodic scans and text doc reports
+		
+#Reporting functionalities
+		
+	
 			
 	
 	
