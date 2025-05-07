@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - SentriScan{% endblock %}
+
+{% block content %}
+<h2>Settings</h2>
+<div class="container mt-4">
+    <form method="POST">
+      <div class="mb-3">
+        <label for="theme" class="form-label">Theme</label>
+        <select class="form-select" name="theme" id="theme">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+  
+      <div class="mb-3">
+        <label for="notifications" class="form-label">Notifications</label>
+        <select class="form-select" name="notifications" id="notifications">
+          <option value="on">On</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+  
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </form>
+  </div>
+{% endblock %}

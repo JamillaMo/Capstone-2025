@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Support - SentriScan{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Support</h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Questions? Feel free to send us a message.</h3>
+            <h2 class="groupnames">SentriScan is brought to you by Net Sentries</h2>
+            <ul class="list-unstyled px-4 py-4">
+                <li>
+                    <i class="fa fa-user py-3"></i> Kelsi Grant
+                </li>
+                <li>
+                    <i class="fa fa-user py-3"></i> Jamilla Morgan
+                </li>
+                <li>
+                    <i class="fa fa-user py-3"></i> Rianna Pearson
+                </li>
+                <li>
+                    <i class="fa fa-user py-3"></i> Danielle Williams
+                </li>        
+            </ul>
+        </div>
+        
+        <div class="card shadow-sm w-50 ms-auto p-3">
+            <div class="card-body">
+                <h4>Contact Form</h4>
+                
+                <!-- Name -->
+                <div class="mb-3">
+                    <label for="name" class="form-label">Your Name</label>
+                    <input type="text" class="form-control" id="name" name="name" placeholder="Enter your name">
+                </div>
+                
+                <!-- Subject -->
+                <div class="mb-3">
+                    <label for="subject" class="form-label">Subject</label>
+                    <input type="text" class="form-control" id="subject" name="subject" placeholder="Enter the subject">
+                </div>
+                
+                <!-- Message -->
+                <div class="mb-3">
+                    <label for="message" class="form-label">Message</label>
+                    <textarea class="form-control" id="message" name="message" rows="5" placeholder="Enter your message"></textarea>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="d-grid">
+                    <button class="btn btn-info">Send Message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

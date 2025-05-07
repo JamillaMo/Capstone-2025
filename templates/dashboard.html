@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SentriScan{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+<div class="row mb-4">
+    <div class="col-md-3"><button class="btn btn-danger w-100">Launch IDS</button></div>
+    <div class="col-md-3"><button class="btn btn-warning w-100">Conduct Recon</button></div>
+    <div class="col-md-3"><button class="btn btn-info w-100">Run Network Scan</button></div>
+    <div class="col-md-3"><button class="btn btn-success w-100">Run Comprehensive Scan</button></div>
+</div>
+
+<div class="row text-center">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>All Events</h5>
+                <p class="fs-3">{{ data.all_events }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Last Scan Result</h5>
+                <p class="fs-3">{{ data.last_result }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Concerns Detected</h5>
+                <p class="fs-3">{{ data.concerns }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

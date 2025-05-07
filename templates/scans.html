@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Scans - SentriScan{% endblock %}
+{% block content %}
+<h2>Network Scans</h2>
+<p>Run and view network scan results here.</p>
+
+<div class="mb-3">
+    <button class="btn btn-primary">Run New Scan</button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h5>Previous Scans</h5>
+        {% if scans %}
+            <ul class="list-group">
+                {% for scan in scans %}
+                    <li class="list-group-item">
+                        {{ scan.timestamp }} - {{ scan.status }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No scans available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
