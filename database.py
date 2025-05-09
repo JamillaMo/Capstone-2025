@@ -36,6 +36,18 @@ CREATE TABLE IF NOT EXISTS users (
 
 print("Users table created successfully.")
 
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip VARCHAR(45) NOT NULL,
+    attack_type VARCHAR(100) NOT NULL,
+    reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+''')
+
+print("Reropts table created successfully.")
+
 # Clean up
 cursor.close()
 conn.close()
@@ -120,7 +132,56 @@ def login():
 
     finally:
         cursor.close()
+        conn.close
+
+# Route: Add new incident report
+@app.route('/report', methods=['POST'])
+def add_report():
+    data = request.json
+    ip = data.get('ip')
+    attack_type = data.get('attack_type')
+
+    if not all([ip, attack_type]):
+        return jsonify({'message': 'Missing fields'}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO report (ip, attack_type)
+            VALUES (%s, %s)
+        ''', (ip, attack_type))
+
+        conn.commit()
+        return jsonify({'message': 'Incident reported successfully'}), 201
+
+    except mysql.connector.Error as err:
+        return jsonify({'message': str(err)}), 500
+
+    finally:
+        cursor.close()
         conn.close()
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Route: Get all incident reports
+@app.route('/reports', methods=['GET'])
+def get_reports():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute('SELECT * FROM report ORDER BY reported_at DESC')
+        reports = cursor.fetchall()
+
+        return jsonify({'reports': reports})
+
+    except mysql.connector.Error as err:
+        return jsonify({'message': str(err)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# if __name__ == '__main__':
+#     app.run(debug=True)
