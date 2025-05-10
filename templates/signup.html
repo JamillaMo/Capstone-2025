@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Sign Up - SentriScan{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h3 class="text-center">Create an Account</h3>
+        <form method="POST" action="/signup">
+            <div class="mb-3">
+                <label for="name" class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Create Account</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

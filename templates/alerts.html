@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Alerts - SentriScan{% endblock %}
+{% block content %}
+<h2>Security Alerts</h2>
+<p>Review active and historical intrusion alerts.</p>
+
+<div class="card">
+    <div class="card-body">
+        {% if alerts %}
+            <ul class="list-group">
+                {% for alert in alerts %}
+                    <li class="list-group-item">
+                        <strong>{{ alert.level }}:</strong> {{ alert.message }}<br>
+                        <small>{{ alert.timestamp }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No alerts at this time.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
