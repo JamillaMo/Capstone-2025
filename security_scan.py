@@ -12,9 +12,10 @@ import pyshark
 import signal
 import sys
 import time 
-
-
-
+from collections import deque
+import shutil  # Import shutil for copying files
+import threading
+import csv
 
 
 urls = input("Enter your domain or IP address to begin")
@@ -52,6 +53,11 @@ def scan_target(ip):
 			print(f"Port: {port}, Service: {service}, Product: {product} {version}")
 	return cve_items
 	
+#Vulnerability Assessment
+#NVD API for CVE data
+
+total_high = 0
+total_critical = 0
 
 def get_vulnerabilities(service_name):
 	url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={str(service_name)}"
@@ -102,39 +108,51 @@ def get_vulnerabilities(service_name):
 				critical+=1
 		#formatted_cves.append(f"**{cve_id}**\nSeverity: {severity}\nDescription: {description}\n")
 		
-
+	total_high += high
+	total_critical += critical
 	print(f"High: {high}, Critical: {critical}")
 	print(f"Total: {high + critical}")
 	return "\n".join(formatted_cves) if formatted_cves else f"No HIGH or CRITICAL vulnerabilities found for {service_name}."
 
+ip_list = []
 
-for domain in domain_list:
+def getWhoIs(domain_list):
+	w = ""
+	for domain in domain_list:
 
 
 	#Perform WHOIS domain lookup
 
-	print(f"Results for domain: " + domain)
-	result = whois.whois(domain)
+		w += f"Results for domain: {domain}\n"
+		result = whois.whois(domain)
 
-	org_name = result.get("org", "Not available")
-	creation_date = result.get("creation_date", "Not available")
-	emails = result.get("emails", "Not available")
+		org_name = result.get("org", "Not available")
+		creation_date = result.get("creation_date", "Not available")
+		emails = result.get("emails", "Not available")
 
-	print(f"Organization Name: {org_name}")
-	print(f"Creation Date: {creation_date}")
-	print(f"Email(s): {emails}")
+		w += f"Organization Name: {org_name}\n"
+		w += f"Creation Date: {creation_date}\n"
+		w += f"Email(s): {emails}\n"
+		w += "\n"
 
 
 
-#Host Discovery
+	#Host Discovery
 
-try:
+		try:
 		
-	ip = socket.gethostbyname(domain)
-	print(f"The domain '{domain}' resolves to IP address: {ip}")
-	print (f"This host is live")
-except socket.gaierror:
-	print(f"The domain " + domain + " does not resolve.")
+			ip = socket.gethostbyname(domain)
+			
+			w += (f"IP: IP address for {domain}: {ip}\n")
+			w += (f"The domain '{domain}' resolves to IP address: {ip}")
+			w += (f"This host is live")
+			ip_list.append(ip)
+		except socket.gaierror:
+			w += f"IP: The domain {domain} does not resolve to an ip.\n"
+			ip_list.append("Ip address not found")
+
+	print(w)
+	return w
 
 
 #Port Scanning
@@ -155,10 +173,11 @@ print(os_name)
 
 
 #Vulnerability Assessment
-
+vulnerabilities = []
 full_scan.append(os_name)
 for service in full_scan:
 	vulns = get_vulnerabilities(str(service))
+	vulnerabilities.append(vulns)
 
 	print(f"Vulnerabilities for get vulnerabilities {service}: {vulns}")
 
@@ -168,71 +187,154 @@ for service in full_scan:
 SNORT_PATH = r"C:\Snort\bin\snort.exe"
 CONFIG_PATH = r"C:\Snort\etc\snort.conf"
 INTERFACE = "5"  
-LOG_DIR = r"C:\Snort\log"
+LOG_DIR = r"C:\Users\Hgrant\Desktop\security_scan - Copy"
 ALERT_FILE = os.path.join(LOG_DIR, "alert.fast")
 
 def start_snort():
-    cmd = [
-        SNORT_PATH,
-        "-i", INTERFACE,
-        "-c", CONFIG_PATH,
-        "-A", "fast",          # Output format
-        "-l", LOG_DIR,         # Log directory
-        "-q"                   # Quiet mode
-    ]
-    return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+	cmd = [
+		SNORT_PATH,
+		"-i", INTERFACE,
+		"-c", CONFIG_PATH,
+		"-A", "fast",          # Output format
+		"-l", LOG_DIR,         # Log directory
+		"-q"                   # Quiet mode
+	]
+	return subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-		
-def watch_alerts():
-    print("Viewing alert file...\n")
-    seen = 0
-    while True:
-        if os.path.exists(ALERT_FILE):
-            with open(ALERT_FILE, 'r') as f:
-                lines = f.readlines()
-                new_alerts = lines[seen:]
-                if new_alerts:
-                    for alert in new_alerts:
-                        print(f"[ALERT] {alert.strip()}")
-                    seen = len(lines)
-        time.sleep(1)
+def monitor_alert_file():
+	print("Monitoring Snort alerts...")
+	previous_content = ""  # Variable to store the previous content of the file
 
+	while True:
+		try:
+			if os.path.exists(ALERT_FILE):
+				# Lock the file for writing while checking its content
+				with threading.Lock():
+					with open(ALERT_FILE, "r") as f:
+						current_content = f.read()
+
+				# Check if the file is not empty
+				if current_content.strip():
+					print("File found.")
+					
+					# Compare the current content with the previous content
+					if current_content != previous_content:
+						print("New content detected in alert file.")
+						previous_content = current_content  # Update the stored content
+				else:
+					print("Alert file is empty. No new alerts.")
+			else:
+				print("Alert file does not exist. Waiting...")
+		except Exception as e:
+			print(f"Error while monitoring alert file: {e}")
+
+		time.sleep(5)  # Check the file every 5 seconds
+
+# Start Snort and monitor the alert file
 snort_proc = start_snort()
 print("Snort started. Monitoring traffic...")
 
 try:
-    alert_thread = Thread(target=watch_alerts, daemon=True)
-    alert_thread.start()
+	monitor_thread = Thread(target=monitor_alert_file, daemon=True)
+	monitor_thread.start()
 
-    while True:
-    	time.sleep(1)
-
-except Exception as e:
-    print(f"Error: {e}")
-
-finally:
-    print("\nStopping Snort...")
-    snort_proc.terminate()
-    snort_proc.wait()
-    print("Snort stopped.")
+	while True:
+		time.sleep(1)
+except KeyboardInterrupt:
+	print("\nStopping Snort...")
+	snort_proc.terminate()
+	snort_proc.wait()
+	print("Snort stopped.")
 	
+	
+	
+
+# File monitoring function
+def monitor_file(file_path):
+	x = ""  # Variable to store the full contents of the file
+	last_size = 0  # Tracks the last known size of the file
+	temp_file_path = file_path + ".tmp"  # Temporary file path
+
+	print(f"Monitoring file: {file_path}")
+	while True:
+		try:
+			# Check if the file exists
+			if os.path.exists(file_path):
+				try:
+					# Create a temporary copy of the file
+					shutil.copy(file_path, temp_file_path)
+
+					current_size = os.path.getsize(temp_file_path)
+
+					# If the file has grown, read the new content
+					if current_size > last_size:
+						with open(temp_file_path, "r") as file:
+							file.seek(last_size)  # Move to the last known position
+							y = file.read()  # Read the newly written portion
+							print(f"New content detected:\n{y}")
+							x += y  # Append the new content to the full content variable
+
+						last_size = current_size  # Update the last known size
+				except (OSError, IOError) as e:
+					print(f"File access error: {e}. Retrying...")
+				finally:
+					# Clean up the temporary file
+					if os.path.exists(temp_file_path):
+						os.remove(temp_file_path)
+			else:
+				print(f"File '{file_path}' does not exist. Waiting...")
+		except Exception as e:
+			print(f"Error: {e}")
+
+		time.sleep(1)  # Check for changes every second
+
+# Start file monitoring in a separate thread
+#file_monitor_thread = Thread(target=monitor_file, args=(ALERT_FILE,), daemon=True)
+#file_monitor_thread.start()
+
+
 #Wireshark periodic scans and text doc reports
 		
 #Reporting functionalities
-		
+scan_summary = []
+
+
+
+scan_summary.append({
+		"domain": domain_list,
+		"ip": ip_list,
+		"high": total_high,
+		"critical": total_critical,
+		"os": os_name   ,
+		"whois": getWhoIs(domain_list),
+		"Nmap_info" : full_scan,
+		"No. of Vulnerabilities" : len(vulnerabilities),
+		"Vulnerabilities" : vulnerabilities})
+
+# Save results
+def save_to_csv(scan_summary, filename="scan_results.csv"):
+	keys = ["domain", "ip", "high", "critical", "server", "os"]
+	with open(filename, mode='w', newline='') as file:
+		writer = csv.DictWriter(file, fieldnames=keys)
+		writer.writeheader()
+		for row in scan_summary:
+			writer.writerow(row)
+	print(f"\nScan results saved to {filename}")
 	
-			
-	
-	
+save_to_csv(scan_summary)
 
 
 
 
 
-	
 
 
 
-			
 
-	
+
+
+
+
+
+
+
