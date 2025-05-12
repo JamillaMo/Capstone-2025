@@ -3,7 +3,7 @@ import bcrypt
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base, User, Report  
+from models import Alert, Base, User, Report  
 
 app = Flask(__name__)
 
@@ -99,31 +99,32 @@ def login():
 @app.route('/report', methods=['POST'])
 def add_report():
     data = request.json
-    ip = data.get('ip')
-    attack_type = data.get('attack_type')
-
-    if not all([ip, attack_type]):
-        return jsonify({'message': 'Missing fields'}), 400
+    
+    required_fields = ['domain', 'ip', 'high', 'critical']
+    if not all(field in data for field in required_fields):
+        return jsonify({'message': 'Missing required fields'}), 400
 
     try:
         session = get_db_session()
         
         new_report = Report(
-            ip=ip,
-            attack_type=attack_type
+            domain=data['domain'],
+            ip=data['ip'],
+            high=data['high'],
+            critical=data['critical'],
+            os=data.get('os'),
+            whois=data.get('whois'),
+            nmap_info=data.get('Nmap_info'),
+            num_vulnerabilities=data.get('No. of Vulnerabilities', 0),
+            vulnerabilities=data.get('Vulnerabilities')
         )
         
         session.add(new_report)
         session.commit()
         
         return jsonify({
-            'message': 'Incident reported successfully',
-            'report': {
-                'id': new_report.id,
-                'ip': new_report.ip,
-                'attack_type': new_report.attack_type,
-                'reported_at': new_report.reported_at.isoformat() if new_report.reported_at else None
-            }
+            'message': 'Report created successfully',
+            'report_id': new_report.id
         }), 201
 
     except Exception as e:
@@ -142,12 +143,98 @@ def get_reports():
         
         reports_data = [{
             'id': report.id,
+            'domain': report.domain,
             'ip': report.ip,
-            'attack_type': report.attack_type,
+            'high': report.high,
+            'critical': report.critical,
+            'os': report.os,
+            'whois': report.whois,
+            'Nmap_info': report.nmap_info,
+            'No. of Vulnerabilities': report.num_vulnerabilities,
+            'Vulnerabilities': report.vulnerabilities,
             'reported_at': report.reported_at.isoformat() if report.reported_at else None
         } for report in reports]
         
         return jsonify({'reports': reports_data})
+
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+    finally:
+        session.close()
+
+
+# Route: Create new alert
+@app.route('/alerts', methods=['POST'])
+def create_alert():
+    data = request.json
+    alert_info = data.get('alert_info')
+
+    if not alert_info:
+        return jsonify({'message': 'Alert information is required'}), 400
+
+    try:
+        session = get_db_session()
+        
+        new_alert = Alert(
+            alert_info=alert_info
+        )
+        
+        session.add(new_alert)
+        session.commit()
+        
+        return jsonify({
+            'message': 'Alert created successfully',
+            'alert': {
+                'id': new_alert.id,
+                'alert_info': new_alert.alert_info,
+                'created_at': new_alert.created_at.isoformat() if new_alert.created_at else None
+            }
+        }), 201
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({'message': str(e)}), 500
+
+    finally:
+        session.close()
+
+# Route: Get all alerts
+@app.route('/alerts', methods=['GET'])
+def get_alerts():
+    try:
+        session = get_db_session()
+        alerts = session.query(Alert).order_by(Alert.created_at.desc()).all()
+        
+        alerts_data = [{
+            'id': alert.id,
+            'alert_info': alert.alert_info,
+            'created_at': alert.created_at.isoformat() if alert.created_at else None
+        } for alert in alerts]
+        
+        return jsonify({'alerts': alerts_data})
+
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+    finally:
+        session.close()
+
+# Route: Get single alert by ID
+@app.route('/alerts/<int:alert_id>', methods=['GET'])
+def get_alert(alert_id):
+    try:
+        session = get_db_session()
+        alert = session.query(Alert).filter(Alert.id == alert_id).first()
+        
+        if not alert:
+            return jsonify({'message': 'Alert not found'}), 404
+            
+        return jsonify({
+            'id': alert.id,
+            'alert_info': alert.alert_info,
+            'created_at': alert.created_at.isoformat() if alert.created_at else None
+        })
 
     except Exception as e:
         return jsonify({'message': str(e)}), 500
