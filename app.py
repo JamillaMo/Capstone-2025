@@ -7,11 +7,12 @@ load_dotenv()  # loads environment variables from .env
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from models import Base, User, Report
+from security_scan import launch_ids, perform_reconnaissance, perform_network_scan, comprehensive_scan
 import os
 import bcrypt
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key" #Check
+app.secret_key = os.getenv('SECRET_KEY')
 
 # Database setup
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -132,6 +133,36 @@ def showSupport():
 @app.route('/settings', endpoint='settings')
 def showSettings():
     return render_template("settings.html")
+
+
+
+# Buttons on the Dashboard
+@app.route('/launch_ids', methods=['POST'])
+def launchIDS():
+    launch_ids()
+    flash("Intrusion Detection System launched.", "success")
+    return redirect(url_for('dashboard'))
+
+@app.route('/conduct_recon', methods=['POST'])
+def conductRecon():
+    perform_reconnaissance()
+    flash("Reconnaissance executed.", "info")
+    return redirect(url_for('dashboard'))
+
+@app.route('/run_network_scan', methods=['POST'])
+def runNetScan():
+    perform_network_scan()
+    flash("Network scan complete.", "info")
+    return redirect(url_for('dashboard'))
+
+@app.route('/run_comprehensive_scan', methods=['POST'])
+def runCompScan():
+    comprehensive_scan()
+    flash("Comprehensive scan completed.", "success")
+    return redirect(url_for('dashboard'))
+
+
+
 
 # Run the server
 if __name__ == "__main__":
