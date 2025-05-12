@@ -19,16 +19,33 @@ class User(Base):
         return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"
 
 class Report(Base):
-    __tablename__ = 'reports'  
-
+    __tablename__ = 'reports'
+    
     id = Column(Integer, primary_key=True, autoincrement=True)
-    ip = Column(String(45), nullable=False)
-    attack_type = Column(String(100), nullable=False)
+    domain = Column(String(255))
+    ip = Column(String(45))
+    high = Column(Boolean, default=False)
+    critical = Column(Boolean, default=False)
+    os = Column(String(100))
+    whois = Column(Text)  
+    nmap_info = Column(Text, name="Nmap_info") 
+    num_vulnerabilities = Column(Integer, name="No. of Vulnerabilities")
+    vulnerabilities = Column(Text)
     reported_at = Column(TIMESTAMP, server_default=func.current_timestamp())
 
     def __repr__(self):
-        return f"<Report(id={self.id}, ip='{self.ip}', attack_type='{self.attack_type}')>"
+        return f"<Report(id={self.id}, domain='{self.domain}', ip='{self.ip}')>"
 
+
+class Alert(Base):
+    __tablename__ = 'alerts'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    alert_info = Column(Text, nullable=False)  # Using Text to allow longer alert messages
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+
+    def __repr__(self):
+        return f"<Alert(id={self.id}, alert_info='{self.alert_info[:50]}...')>"
 # Database connection setup
 def setup_database_connection():
     # Replace with correct credentials
