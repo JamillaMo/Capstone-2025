@@ -6,16 +6,30 @@
 <h2>Dashboard</h2>
 <div class="row mb-4">
     <div class="col-md-3">
-        <button class="btn btn-danger w-100" onclick="triggerAction('launchIDS')">Launch IDS</button>
+        <button class="btn btn-danger w-100" onclick="showInputForm('launchIDS')">Launch IDS</button>
     </div>
     <div class="col-md-3">
-        <button class="btn btn-warning w-100" onclick="triggerAction('conductRecon')">Conduct Recon</button>
+        <button class="btn btn-warning w-100" onclick="showInputForm('conductRecon')">Conduct Recon</button>
     </div>
     <div class="col-md-3">
-        <button class="btn btn-info w-100" onclick="triggerAction('runNetScan')">Run Network Scan</button>
+        <button class="btn btn-info w-100" onclick="showInputForm('runNetScan')">Run Network Scan</button>
     </div>
     <div class="col-md-3">
-        <button class="btn btn-success w-100" onclick="triggerAction('runCompScan')">Run Comprehensive Scan</button>
+        <button class="btn btn-success w-100" onclick="showInputForm('runCompScan')">Run Comprehensive Scan</button>
+    </div>
+</div>
+
+<!-- Input Form Modal -->
+<div id="inputFormModal" style="display: none;">
+    <div class="form-container">
+        <h4 class="mb-4 text-center">Enter IP Address</h4>
+        <form id="scanForm" method="POST">
+            <div class="mb-3">
+                <label for="ip" class="form-label">IP Address:</label>
+                <input type="text" name="ip" id="ip" class="form-control" required placeholder="e.g., 192.168.1.1">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Submit</button>
+        </form>
     </div>
 </div>
 
@@ -24,7 +38,7 @@
         <div class="card">
             <div class="card-body">
                 <h5>All Events</h5>
-                <p class="fs-3">{{ data.last_result }}</p>
+                <p class="fs-3">{{ data.all_events }}</p>
             </div>
         </div>
     </div>
@@ -49,31 +63,56 @@
 </div>
 
 <script>
-    // JavaScript function to handle button clicks
-    function triggerAction(route) {
-        fetch(`/${route}`, {
-            method: 'POST',
-        })
-        .then(response => response.json()) // Parse the response as JSON
-        .then(data => {
-            // Clear the existing content in the "All Events" div
-            const messagesDiv = document.getElementById('all-events-messages');
-            messagesDiv.innerHTML = ''; // Clear the div
+    let selectedRoute = '';
 
-            // Add the new message
-            const message = document.createElement('p');
-            message.textContent = data.message; // Use the "message" field from the JSON response
-            messagesDiv.appendChild(message);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+    function showInputForm(route) {
+        selectedRoute = route; // Store the route for the scan
+        document.getElementById('inputFormModal').style.display = 'block'; // Show the modal
     }
+
+    // Clear the #all-events-messages div when the page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        const messagesDiv = document.getElementById('all-events-messages');
+        if (messagesDiv) {
+            messagesDiv.innerHTML = ''; // Clear the div
+        }
+    });
+
+    document.getElementById('scanForm').addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        const ip = document.getElementById('ip').value;
+
+        // Send the IP to the respective scan route
+        fetch(`/${selectedRoute}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ip: ip }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                const messagesDiv = document.getElementById('all-events-messages');
+                messagesDiv.innerHTML = ''; // Clear the div
+
+                // Add the new message (allowing HTML if necessary)
+                const message = document.createElement('p');
+                message.innerHTML = data.message; // Use innerHTML to render HTML content
+                messagesDiv.appendChild(message);
+
+                document.getElementById('inputFormModal').style.display = 'none'; // Hide the modal
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
 </script> 
 
 
-
+    
 {% endblock %}
+    
 
 
 
