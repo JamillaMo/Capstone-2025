@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, flash, session, url_for
+from flask import jsonify
 from flask_mail import Mail, Message
 from dotenv import load_dotenv
 
@@ -12,14 +13,15 @@ import os
 import bcrypt
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = "lmnopqrstuvwxyz"  # Replace with a strong secret key
 
 # Database setup
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///database.db')  # Default to SQLite if not set
 engine = create_engine(DATABASE_URL, echo=True)
 Base.metadata.create_all(engine)
 Session = scoped_session(sessionmaker(bind=engine))
 
+# Flask-Mail setup
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
 app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS') == 'true'
@@ -137,30 +139,26 @@ def showSettings():
 
 
 # Buttons on the Dashboard
-@app.route('/launch_ids', methods=['POST'])
+
+@app.route('/launchIDS', methods=['POST'])
 def launchIDS():
-    launch_ids()
-    flash("Intrusion Detection System launched.", "success")
-    return redirect(url_for('dashboard'))
+    result = launch_ids()  # Replace with your actual function
+    return jsonify({"message": result, "status": "success"})
 
-@app.route('/conduct_recon', methods=['POST'])
+@app.route('/conductRecon', methods=['POST'])
 def conductRecon():
-    perform_reconnaissance()
-    flash("Reconnaissance executed.", "info")
-    return redirect(url_for('dashboard'))
+    result = perform_reconnaissance()  # Replace with your actual function
+    return jsonify({"message": result, "status": "success"})
 
-@app.route('/run_network_scan', methods=['POST'])
+@app.route('/runNetScan', methods=['POST'])
 def runNetScan():
-    perform_network_scan()
-    flash("Network scan complete.", "info")
-    return redirect(url_for('dashboard'))
+    result = perform_network_scan()  # Replace with your actual function
+    return jsonify({"message": result, "status": "success"})
 
-@app.route('/run_comprehensive_scan', methods=['POST'])
+@app.route('/runCompScan', methods=['POST'])
 def runCompScan():
-    comprehensive_scan()
-    flash("Comprehensive scan completed.", "success")
-    return redirect(url_for('dashboard'))
-
+    result = comprehensive_scan()  # Replace with your actual function
+    return jsonify({"message": result, "status": "success"})
 
 
 
