@@ -5,10 +5,18 @@
 {% block content %}
 <h2>Dashboard</h2>
 <div class="row mb-4">
-    <div class="col-md-3"><button class="btn btn-danger w-100">Launch IDS</button></div>
-    <div class="col-md-3"><button class="btn btn-warning w-100">Conduct Recon</button></div>
-    <div class="col-md-3"><button class="btn btn-info w-100">Run Network Scan</button></div>
-    <div class="col-md-3"><button class="btn btn-success w-100">Run Comprehensive Scan</button></div>
+    <div class="col-md-3">
+        <button class="btn btn-danger w-100" onclick="triggerAction('launchIDS')">Launch IDS</button>
+    </div>
+    <div class="col-md-3">
+        <button class="btn btn-warning w-100" onclick="triggerAction('conductRecon')">Conduct Recon</button>
+    </div>
+    <div class="col-md-3">
+        <button class="btn btn-info w-100" onclick="triggerAction('runNetScan')">Run Network Scan</button>
+    </div>
+    <div class="col-md-3">
+        <button class="btn btn-success w-100" onclick="triggerAction('runCompScan')">Run Comprehensive Scan</button>
+    </div>
 </div>
 
 <div class="row text-center">
@@ -16,7 +24,6 @@
         <div class="card">
             <div class="card-body">
                 <h5>All Events</h5>
-                <p class="fs-3">{{ data.all_events }}</p>
             </div>
         </div>
     </div>
@@ -36,5 +43,36 @@
             </div>
         </div>
     </div>
+    <!-- Div to display dynamic messages -->
+        <div id="all-events-messages" class="mt-3"></div>
 </div>
+
+<script>
+    // JavaScript function to handle button clicks
+    function triggerAction(route) {
+        fetch(`/${route}`, {
+            method: 'POST',
+        })
+        .then(response => response.json()) // Parse the response as JSON
+        .then(data => {
+            // Clear the existing content in the "All Events" div
+            const messagesDiv = document.getElementById('all-events-messages');
+            messagesDiv.innerHTML = ''; // Clear the div
+
+            // Add the new message
+            const message = document.createElement('p');
+            message.textContent = data.message; // Use the "message" field from the JSON response
+            messagesDiv.appendChild(message);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+</script> 
+
+
+
 {% endblock %}
+
+
+
