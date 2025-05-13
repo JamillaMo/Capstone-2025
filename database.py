@@ -52,7 +52,7 @@ print("Reropts table created successfully.")
 cursor.close()
 conn.close()
 
-pip install flask mysql-connector-python bcrypt
+#pip install flask mysql-connector-python bcrypt
 
 from flask import Flask, request, jsonify
 import mysql.connector
