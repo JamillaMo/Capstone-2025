@@ -19,10 +19,7 @@ import threading
 import csv
 import matplotlib.pyplot as plt
 
-urls = input("Enter your domain or IP address to begin")
 
-domain_list = [value.strip() for value in urls.split(',')]
-ip_list = ""
 
 def get_local_os_info():
     # OS of scanning machine
@@ -200,8 +197,11 @@ def generate_feedback(total_high, total_critical):
 
     return feedback
 
-def perform_reconnaissance(domain_list, ip_list):
+def perform_reconnaissance():
     scan_summary = []
+    urls = input("Enter your domain or IP address to begin")
+    domain_list = [value.strip() for value in urls.split(',')]
+    ip_list = ""
     print("Performing reconnaissance...")
     scan = getWhoIs(domain_list)
     os_name = get_local_os_info()
@@ -216,44 +216,70 @@ def perform_reconnaissance(domain_list, ip_list):
     save_to_csv(scan_summary)
     return "Reconnaissance completed and results saved."
 
-def perform_network_scan(ip_list, full_scan):
+def launch_ids():
+    urls = input("Enter your domain or IP address to begin")
+
+    domain_list = [value.strip() for value in urls.split(',')]
+     # Get the IP address of the first domain
+    scan_summary =[]
+    print("Launching IDS...")
+    # Perform IDS launch
+    print("Performing IDS launch...")
+    print("This feature is unavailable at this time. Please contact Support")
+    return scan_summary
+
+
+def perform_network_scan():
     scan_summary = []
-	# Perform network scan
+    urls = input("Enter your IP address(es) to begin (comma-separated): ")
+
+    ip_list = [value.strip() for value in urls.split(',')]
+
     print("Performing network scan...")
-    scan_summary.append({
-        "ip": ip_list,
-        "Nmap_info": full_scan,
-    })
+    for ip in ip_list:
+        full_scan = scan_target(ip)  # Pass each IP as a string
+        scan_summary.append({
+            "ip": ip,
+            "Nmap_info": full_scan,
+        })
+
     save_to_csv(scan_summary)
     return "Network scan completed and results saved."
 
-def comprehensive_scan(domain_list, ip_list):
+def comprehensive_scan():
     scan_summary = []
-	# Perform comprehensive scan
+    urls = input("Enter your domain or IP address(es) to begin (comma-separated): ")
+
+    domain_list = [value.strip() for value in urls.split(',')]
+    ip_list = [socket.gethostbyname(domain) for domain in domain_list if domain]  # Resolve domains to IPs
+
     print("Performing comprehensive scan...")
-    scan = getWhoIs(domain_list)
-    full_scan = [scan_target(ip) for ip in ip_list]  # Iterate through ip_list in one line
+    whois_data = getWhoIs(domain_list)
     os_name = get_local_os_info()
     vulnerabilities = []
-    full_scan.append(os_name)
-    feedback = generate_feedback(total_high, total_critical)
 
+    full_scan = []
+    for ip in ip_list:
+        scan_results = scan_target(ip)  # Pass each IP as a string
+        full_scan.extend(scan_results)  # Collect results
+
+    feedback = generate_feedback(total_high, total_critical)
 
     for service in full_scan:
         vulns = get_vulnerabilities(str(service))
         vulnerabilities.append(vulns)
-        
-	
+
     scan_summary.append({
         "domain": domain_list,
         "ip": ip_list,
         "high": total_high,
         "critical": total_critical,
         "os": os_name,
-        "whois": scan,
+        "whois": whois_data,
         "Nmap_info": full_scan,
-        "No. of Vulnerabilities": len(vulnerabilities),
-        "Vulnerabilities": vulnerabilities, "Feedback" : feedback
+        "No. of Vulnerabilities": total_high + total_critical,
+        "Vulnerabilities": vulnerabilities,
+        "Feedback": feedback,
     })
 
     save_to_csv(scan_summary)
@@ -262,14 +288,15 @@ def comprehensive_scan(domain_list, ip_list):
 
 
 # Perform Reconnaissance
-#perform_reconnaissance(domain_list, ip_list)
+#perform_reconnaissance()
 
 # Perform Network Scan
-#full_scan = [scan_target(ip_list)]
-#perform_network_scan(ip_list, full_scan)
+
+#perform_network_scan()
 
 # Perform Comprehensive Scan
-#comprehensive_scan(domain_list, ip_list)
+#comprehensive_scan()
+#launch_ids()
 
 # Generate Feedback
 #feedback = generate_feedback(total_high, total_critical)
