@@ -1,3 +1,7 @@
+<!-- Net Sentries Base HTML for SentriScan, a cybersecurity platform -->
+<!-- Members: Kelsi Grant, Jamilla Morgan, Rianna Pearson, Danielle Williams -->
+<!-- Code generated with help from God, our minds, and AI sources -->
+ 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,9 +23,17 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-96x96.png') }}" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}" />
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}"/>
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}" />
 </head>
 <body>
-
+    <!-- Construct different navbar -->
+    {% if request.endpoint not in ['login', 'signup'] %}
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
@@ -33,11 +45,6 @@
                     <li class="nav-item">
                         <a class="btn btn-outline-info" href="{{ url_for('dashboard') }}">
                             <i class="fa fa-home"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-info" href="{{ url_for('scans') }}">
-                            <i class="fa fa-search"></i> Scans
                         </a>
                     </li>
                     <li class="nav-item">
@@ -64,6 +71,29 @@
             </div>
         </div>
     </nav>
+    
+    {% else %}
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('login') }}">
+                <i class="fa fa-shield-alt me-2"></i>SentriScan
+            </a>
+        </div>
+    </nav>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="container mt-3">
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
 
     <!-- Main Content -->
     <main class="container py-4">
