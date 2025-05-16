@@ -1,0 +1,31 @@
+domain,ip,high,critical,os,whois,Nmap_info,No. of Vulnerabilities,Vulnerabilities,Feedback
+,& C:/Users/Hgrant/AppData/Local/Programs/Python/Python313/python.exe c:/Users/Hgrant/Desktop/Capstone-2025-Jamilla-Test/models.py,,,,,[],,,
+['hackthebox.com'],,,,"Local OS: Windows, Version: 10.0.19045, Release: 10","Results for domain: hackthebox.com
+Organization Name: Identity Protection Service
+Creation Date: 2010-03-18 03:26:29
+Email(s): ['trustandsafety@support.aws.com', '6ca220df-81cb-47f3-b9eb-29370e71fea6@identity-protect.org']
+
+IP: IP address for hackthebox.com: 109.176.239.69
+The domain 'hackthebox.com' resolves to IP address: 109.176.239.69This host is live",,,
+['192.168.0.13'],,,,"Local OS: Windows, Version: 10.0.26100, Release: 10","Results for domain: 192.168.0.13
+Organization Name: None
+Creation Date: None
+Email(s): None
+
+IP: IP address for 192.168.0.13: 192.168.0.13
+The domain '192.168.0.13' resolves to IP address: 192.168.0.13This host is live",,,
+['192.168.0.13'],,,,"Local OS: Windows, Version: 10.0.26100, Release: 10","Results for domain: 192.168.0.13
+Organization Name: None
+Creation Date: None
+Email(s): None
+
+IP: IP address for 192.168.0.13: 192.168.0.13
+The domain '192.168.0.13' resolves to IP address: 192.168.0.13This host is live",,,
+['192.168.0.13'],,,,"Local OS: Windows, Version: 10.0.26100, Release: 10","Results for domain: 192.168.0.13
+Organization Name: None
+Creation Date: None
+Email(s): None
+
+IP: IP address for 192.168.0.13: 192.168.0.13
+The domain '192.168.0.13' resolves to IP address: 192.168.0.13This host is live",,,
+,192.168.0.13,,,,,"['Microsoft Windows RPC ', 'Microsoft Windows netbios-ssn ', ' ']",,

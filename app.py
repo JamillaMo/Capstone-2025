@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, flash, session, url_for
+from flask import jsonify
 from flask_mail import Mail, Message
 from dotenv import load_dotenv
 
@@ -12,14 +13,15 @@ import os
 import bcrypt
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = "lmnopqrstuvwxyz"  # Replace with a strong secret key
 
 # Database setup
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///database.db')  # Default to SQLite if not set
 engine = create_engine(DATABASE_URL, echo=True)
 Base.metadata.create_all(engine)
 Session = scoped_session(sessionmaker(bind=engine))
 
+# Flask-Mail setup
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
 app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS') == 'true'
@@ -28,8 +30,13 @@ app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
 mail = Mail(app)
-#users = {}#
 
+#Get database session
+def get_db_session():
+    return Session()
+
+
+# API routes
 @app.route('/')
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -85,6 +92,25 @@ def logout():
     flash('Logged out.', 'info')
     return redirect(url_for('login'))
 
+@app.route('/input', methods=['GET', 'POST'])
+def input_data():
+    if request.method == 'POST':
+        ip = request.form['ip']
+
+        # Validate the IP address (optional)
+        if not ip:
+            flash("IP address is required.", "danger")
+            return redirect('/input')
+
+        # Save the IP address in the session
+        session['scan_ip'] = ip
+        flash(f"IP address '{ip}' saved successfully!", "success")
+
+        # Redirect to the dashboard or another page
+        return redirect(url_for('dashboard'))
+
+    return render_template('input.html')
+
 
 @app.route('/dashboard', endpoint='dashboard')
 def showDashboard():
@@ -101,6 +127,75 @@ def showReports():
     all_reports = db.query(Report).order_by(Report.reported_at.desc()).all()
     db.close()
     return render_template("reports.html", reports=all_reports)
+
+@app.route('/report', methods=['POST'])
+def add_report():
+    data = request.json
+    
+    required_fields = ['domain', 'ip', 'high', 'critical']
+    if not all(field in data for field in required_fields):
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    try:
+        session = get_db_session()
+        
+        new_report = Report(
+            domain=data['domain'],
+            ip=data['ip'],
+            high=data['high'],
+            critical=data['critical'],
+            os=data.get('os'),
+            whois=data.get('whois'),
+            nmap_info=data.get('Nmap_info'),
+            num_vulnerabilities=data.get('No. of Vulnerabilities', 0),
+            vulnerabilities=data.get('Vulnerabilities')
+        )
+        
+        session.add(new_report)
+        session.commit()
+        
+        return jsonify({
+            'message': 'Report created successfully',
+            'report_id': new_report.id
+        }), 201
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({'message': str(e)}), 500
+
+    finally:
+        session.close()
+
+# Route: Get all incident reports
+@app.route('/reports', methods=['GET'])
+def get_reports():
+    try:
+        session = get_db_session()
+        reports = session.query(Report).order_by(Report.reported_at.desc()).all()
+        
+        reports_data = [{
+            'id': report.id,
+            'domain': report.domain,
+            'ip': report.ip,
+            'high': report.high,
+            'critical': report.critical,
+            'os': report.os,
+            'whois': report.whois,
+            'Nmap_info': report.nmap_info,
+            'No. of Vulnerabilities': report.num_vulnerabilities,
+            'Vulnerabilities': report.vulnerabilities,
+            'reported_at': report.reported_at.isoformat() if report.reported_at else None
+        } for report in reports]
+        
+        return jsonify({'reports': reports_data})
+
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+    finally:
+        session.close()
+
+
 
 @app.route('/alerts', endpoint='alerts')
 def showAlerts():
@@ -137,30 +232,53 @@ def showSettings():
 
 
 # Buttons on the Dashboard
-@app.route('/launch_ids', methods=['POST'])
+
+@app.route('/launchIDS', methods=['POST'])
 def launchIDS():
-    launch_ids()
-    flash("Intrusion Detection System launched.", "success")
-    return redirect(url_for('dashboard'))
+    data = request.json
+    ip = data.get('ip')
+    if not ip:
+        return jsonify({'message': 'IP address is required', 'status': 'error'}), 400
 
-@app.route('/conduct_recon', methods=['POST'])
+    # Call the respective scan function
+    result = launch_ids(ip)
+    return jsonify({'message': f'IDS launched successfully for IP: {ip}', 'result': result, 'status': 'success'})
+
+
+@app.route('/conductRecon', methods=['POST'])
 def conductRecon():
-    perform_reconnaissance()
-    flash("Reconnaissance executed.", "info")
-    return redirect(url_for('dashboard'))
+    data = request.json
+    ip = data.get('ip')
+    if not ip:
+        return jsonify({'message': 'IP address is required', 'status': 'error'}), 400
 
-@app.route('/run_network_scan', methods=['POST'])
+    # Call the respective scan function
+    result = perform_reconnaissance(ip)
+    return jsonify({'message': f'Reconnaissance executed successfully for IP: {ip}', 'result': result, 'status': 'success'})
+
+
+@app.route('/runNetScan', methods=['POST'])
 def runNetScan():
-    perform_network_scan()
-    flash("Network scan complete.", "info")
-    return redirect(url_for('dashboard'))
+    data = request.json
+    ip = data.get('ip')
+    if not ip:
+        return jsonify({'message': 'IP address is required', 'status': 'error'}), 400
 
-@app.route('/run_comprehensive_scan', methods=['POST'])
+    # Call the respective scan function
+    result = perform_network_scan(ip)
+    return jsonify({'message': f'Network scan completed successfully for IP: {ip}', 'result': result, 'status': 'success'})
+
+
+@app.route('/runCompScan', methods=['POST'])
 def runCompScan():
-    comprehensive_scan()
-    flash("Comprehensive scan completed.", "success")
-    return redirect(url_for('dashboard'))
+    data = request.json
+    ip = data.get('ip')
+    if not ip:
+        return jsonify({'message': 'IP address is required', 'status': 'error'}), 400
 
+    # Call the respective scan function
+    result = comprehensive_scan(ip)
+    return jsonify({'message': f'Comprehensive scan completed successfully for IP: {ip}', 'result': result, 'status': 'success'})
 
 
 
